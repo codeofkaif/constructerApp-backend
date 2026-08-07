@@ -27,5 +27,6 @@ public class SiteService {
     @Column(nullable = false, unique = true)
     private String slug;
 
+    @Builder.Default
     private int sortOrder = 0;
 }

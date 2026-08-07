@@ -27,6 +27,7 @@ public class PortfolioItem {
     private String location;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean featured = false;
 
     // JSON array of {value, label} stored as text
@@ -37,6 +38,7 @@ public class PortfolioItem {
     @Column(columnDefinition = "TEXT")
     private String imagesJson;
 
+    @Builder.Default
     private int sortOrder = 0;
 
     @CreationTimestamp

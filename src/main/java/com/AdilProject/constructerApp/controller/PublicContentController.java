@@ -3,6 +3,8 @@ package com.AdilProject.constructerApp.controller;
 import com.AdilProject.constructerApp.dto.PortfolioItemDto;
 import com.AdilProject.constructerApp.dto.SiteServiceDto;
 import com.AdilProject.constructerApp.service.AdminContentService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,7 @@ import java.util.List;
 public class PublicContentController {
 
     private final AdminContentService contentService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/portfolio")
     public List<PortfolioItemDto> getPortfolio() {
@@ -27,9 +30,9 @@ public class PublicContentController {
     }
 
     @GetMapping("/config/{key}")
-    public ResponseEntity<String> getConfig(@PathVariable String key) {
+    public ResponseEntity<JsonNode> getConfig(@PathVariable String key) throws Exception {
         String value = contentService.getConfig(key);
         if (value == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(value);
+        return ResponseEntity.ok(objectMapper.readTree(value));
     }
 }

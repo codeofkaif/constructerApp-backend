@@ -8,10 +8,11 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "portfolio_items")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public class PortfolioItem {
 
     @Id

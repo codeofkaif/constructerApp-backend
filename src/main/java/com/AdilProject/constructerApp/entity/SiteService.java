@@ -5,10 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "site_services")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public class SiteService {
 
     @Id

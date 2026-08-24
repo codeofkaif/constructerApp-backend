@@ -3,8 +3,6 @@ package com.AdilProject.constructerApp.controller;
 import com.AdilProject.constructerApp.dto.PortfolioItemDto;
 import com.AdilProject.constructerApp.dto.SiteServiceDto;
 import com.AdilProject.constructerApp.service.AdminContentService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +16,6 @@ import java.util.Map;
 public class AdminContentController {
 
     private final AdminContentService contentService;
-    private final ObjectMapper objectMapper;
 
     // Portfolio
     @GetMapping("/portfolio")
@@ -52,18 +49,19 @@ public class AdminContentController {
     @PutMapping("/services/reorder")
     public ResponseEntity<Void> reorderServices(@RequestBody List<Map<String, Object>> order) { contentService.reorderServices(order); return ResponseEntity.noContent().build(); }
 
-    // Config — stored as JSON, sent/received as JSON (no string wrapping)
+    // Config — stored as JSON string in DB, returned/received as raw JSON object via Spring's built-in Jackson
     @GetMapping("/config/{key}")
-    public ResponseEntity<JsonNode> getConfig(@PathVariable String key) throws Exception {
+    public ResponseEntity<Object> getConfig(@PathVariable String key) {
         String value = contentService.getConfig(key);
         if (value == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(objectMapper.readTree(value));
+        // Return raw JSON string — Spring MVC will serialize it as-is when wrapped in Map
+        return ResponseEntity.ok(contentService.getConfigAsMap(key));
     }
 
     @PutMapping("/config/{key}")
     public ResponseEntity<Void> saveConfig(@PathVariable String key,
-                                           @RequestBody JsonNode value) throws Exception {
-        contentService.saveConfig(key, objectMapper.writeValueAsString(value));
+                                           @RequestBody Map<String, Object> value) {
+        contentService.saveConfigFromMap(key, value);
         return ResponseEntity.noContent().build();
     }
 }

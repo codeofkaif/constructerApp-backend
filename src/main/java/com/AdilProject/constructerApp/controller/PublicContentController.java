@@ -3,8 +3,6 @@ package com.AdilProject.constructerApp.controller;
 import com.AdilProject.constructerApp.dto.PortfolioItemDto;
 import com.AdilProject.constructerApp.dto.SiteServiceDto;
 import com.AdilProject.constructerApp.service.AdminContentService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +15,6 @@ import java.util.List;
 public class PublicContentController {
 
     private final AdminContentService contentService;
-    private final ObjectMapper objectMapper;
 
     @GetMapping("/portfolio")
     public List<PortfolioItemDto> getPortfolio() {
@@ -29,10 +26,11 @@ public class PublicContentController {
         return contentService.getAllServices();
     }
 
+    // Config — returns stored JSON as a raw Java Map (Spring MVC serializes it to JSON automatically)
     @GetMapping("/config/{key}")
-    public ResponseEntity<JsonNode> getConfig(@PathVariable String key) throws Exception {
-        String value = contentService.getConfig(key);
-        if (value == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(objectMapper.readTree(value));
+    public ResponseEntity<Object> getConfig(@PathVariable String key) {
+        Object config = contentService.getConfigAsMap(key);
+        if (config == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(config);
     }
 }

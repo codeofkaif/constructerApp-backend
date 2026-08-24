@@ -170,4 +170,39 @@ public class AdminContentService {
         config.setConfigValue(value);
         configRepo.save(config);
     }
+
+    // -------------------------------------------------------------------------
+    // Site Config — Map-based helpers (no ObjectMapper needed in controllers)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the stored JSON config parsed into a Map<String,Object>.
+     * Spring MVC will serialize this Map back to JSON automatically.
+     * Returns null if the key does not exist.
+     */
+    @SuppressWarnings("unchecked")
+    public Object getConfigAsMap(String key) {
+        String json = getConfig(key);
+        if (json == null || json.isBlank()) return null;
+        try {
+            return new tools.jackson.databind.ObjectMapper().readValue(json, Object.class);
+        } catch (Exception e) {
+            return json; // fallback: return raw string
+        }
+    }
+
+    /**
+     * Accepts a Map<String,Object> from the controller @RequestBody and
+     * serialises it to a JSON string before storing.
+     */
+    @Transactional
+    public void saveConfigFromMap(String key, Object value) {
+        try {
+            String json = new tools.jackson.databind.ObjectMapper().writeValueAsString(value);
+            saveConfig(key, json);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialise config for key: " + key, e);
+        }
+    }
+
 }

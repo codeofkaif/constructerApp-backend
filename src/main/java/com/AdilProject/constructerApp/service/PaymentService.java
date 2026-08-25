@@ -24,9 +24,6 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
 
-    // @Transactional zaroori hai:
-    // Do cheezein ek saath honi chahiye — Payment row create + Project.paidAmount update.
-    // Agar beech mein fail ho gaya to dono ek saath rollback ho jayenge.
     @Transactional
     public PaymentSummaryResponse pay(String email, PayRequest req) {
         User user = userRepository.findByEmail(email)
@@ -48,8 +45,6 @@ public class PaymentService {
                 .build();
         paymentRepository.save(payment);
 
-        // Dirty checking: project managed entity hai is @Transactional method mein,
-        // ye change apne aap DB mein flush ho jayega — explicit save() ki zaroorat nahi.
         project.setPaidAmount(project.getPaidAmount() + req.amount());
 
         return buildSummary(project);
@@ -58,8 +53,10 @@ public class PaymentService {
     public PaymentSummaryResponse getSummary(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        Project project = projectRepository.findByOwnerId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Project project = projectRepository.findByOwnerId(user.getId()).orElse(null);
+        if (project == null) {
+            return new PaymentSummaryResponse(0.0, 0.0, 0.0);
+        }
         return buildSummary(project);
     }
 

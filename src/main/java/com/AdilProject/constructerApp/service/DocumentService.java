@@ -10,6 +10,7 @@ import com.AdilProject.constructerApp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -23,8 +24,10 @@ public class DocumentService {
     public List<DocumentResponse> getDocuments(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        Project project = projectRepository.findByOwnerId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Project project = projectRepository.findByOwnerId(user.getId()).orElse(null);
+        if (project == null) {
+            return Collections.emptyList();
+        }
 
         return documentRepository.findByProjectId(project.getId())
                 .stream()

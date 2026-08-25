@@ -30,7 +30,7 @@ public class PublicContentController {
     @GetMapping("/config/{key}")
     public ResponseEntity<Object> getConfig(@PathVariable String key) {
         Object config = contentService.getConfigAsMap(key);
-        if (config == null) return ResponseEntity.notFound().build();
+        if (config == null) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(config);
     }
 }

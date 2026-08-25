@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -30,12 +31,14 @@ public class DashboardService {
     private Project getProjectForUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return projectRepository.findByOwnerId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("No project found for this user"));
+        return projectRepository.findByOwnerId(user.getId()).orElse(null);
     }
 
     public OverviewResponse getOverview(String email) {
         Project p = getProjectForUser(email);
+        if (p == null) {
+            return new OverviewResponse(0, "Planning", null, null, "Milestone Review", null);
+        }
         return new OverviewResponse(
                 p.getOverallProgress(), p.getCurrentStage(),
                 p.getStageStartDate(), p.getStageEstCompletion(),
@@ -45,6 +48,9 @@ public class DashboardService {
 
     public List<TimelinePhaseResponse> getTimeline(String email) {
         Project p = getProjectForUser(email);
+        if (p == null) {
+            return Collections.emptyList();
+        }
         return timelinePhaseRepository.findByProjectIdOrderBySortOrderAsc(p.getId())
                 .stream()
                 .map(ph -> new TimelinePhaseResponse(ph.getName(), ph.getStatus().name(), ph.getPercent()))
@@ -53,12 +59,18 @@ public class DashboardService {
 
     public Page<UpdateResponse> getUpdates(String email, int page, int size) {
         Project p = getProjectForUser(email);
+        if (p == null) {
+            return Page.empty(PageRequest.of(page, size));
+        }
         return updateRepository.findByProjectIdOrderByCreatedAtDesc(p.getId(), PageRequest.of(page, size))
                 .map(u -> new UpdateResponse(u.getTitle(), u.getDescription(), u.getThumbnailUrl(), u.getCreatedAt()));
     }
 
     public ProjectResponse getProject(String email) {
         Project p = getProjectForUser(email);
+        if (p == null) {
+            return new ProjectResponse("Client Project", "Lucknow, UP", 0, 0, 0, 0.0);
+        }
         return new ProjectResponse(p.getTitle(), p.getLocation(), p.getBuiltUpAreaSqft(),
                 p.getBedrooms(), p.getDurationMonths(), p.getTotalBudget());
     }

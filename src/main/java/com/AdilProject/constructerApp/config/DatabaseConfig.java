@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
-import java.net.URI;
 
 @Slf4j
 @Configuration
@@ -57,51 +56,72 @@ public class DatabaseConfig {
             return h2Config;
         }
 
-        String jdbcUrl = rawUrl.trim();
-        String clean = jdbcUrl.startsWith("jdbc:") ? jdbcUrl.substring(5) : jdbcUrl;
-
-        if (clean.startsWith("postgres://") || clean.startsWith("postgresql://")) {
-            String httpEquivalent = clean.startsWith("postgresql://")
-                    ? "http://" + clean.substring(13)
-                    : "http://" + clean.substring(11);
-            try {
-                URI uri = URI.create(httpEquivalent);
-                String host = uri.getHost();
-                int port = uri.getPort() != -1 ? uri.getPort() : 5432;
-                String path = uri.getPath();
-                if (path == null || path.isBlank() || path.equals("/")) {
-                    path = "/adil_construction";
-                }
-                String query = uri.getQuery();
-                String userInfo = uri.getUserInfo();
-
-                if (userInfo != null && !userInfo.isBlank()) {
-                    String[] parts = userInfo.split(":", 2);
-                    username = parts[0];
-                    if (parts.length > 1) {
-                        password = parts[1];
-                    }
-                }
-
-                if (host != null && host.endsWith("render.com")) {
-                    if (query == null || !query.contains("sslmode=")) {
-                        query = (query == null || query.isBlank()) ? "sslmode=require" : query + "&sslmode=require";
-                    }
-                }
-
-                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path + (query != null && !query.isBlank() ? "?" + query : "");
-            } catch (Exception e) {
-                log.warn("Failed to parse database URI, using raw URL with jdbc: prefix: {}", e.getMessage());
-                if (!jdbcUrl.startsWith("jdbc:")) {
-                    jdbcUrl = "jdbc:" + jdbcUrl;
-                }
-            }
-        } else if (!jdbcUrl.startsWith("jdbc:")) {
-            jdbcUrl = "jdbc:" + jdbcUrl;
+        String s = rawUrl.trim();
+        if (s.startsWith("jdbc:")) {
+            s = s.substring(5);
         }
 
+        if (s.startsWith("postgres://") || s.startsWith("postgresql://")) {
+            if (s.startsWith("postgres://")) {
+                s = s.substring("postgres://".length());
+            } else {
+                s = s.substring("postgresql://".length());
+            }
+
+            String query = null;
+            int queryIdx = s.indexOf('?');
+            if (queryIdx != -1) {
+                query = s.substring(queryIdx + 1);
+                s = s.substring(0, queryIdx);
+            }
+
+            int slashIdx = s.indexOf('/');
+            String path = "/adil_construction";
+            String authority = s;
+            if (slashIdx != -1) {
+                path = s.substring(slashIdx);
+                authority = s.substring(0, slashIdx);
+            }
+
+            int atIdx = authority.lastIndexOf('@');
+            if (atIdx != -1) {
+                String userInfo = authority.substring(0, atIdx);
+                authority = authority.substring(atIdx + 1);
+                int colonIdx = userInfo.indexOf(':');
+                if (colonIdx != -1) {
+                    username = userInfo.substring(0, colonIdx);
+                    password = userInfo.substring(colonIdx + 1);
+                } else {
+                    username = userInfo;
+                }
+            }
+
+            int colonIdx = authority.lastIndexOf(':');
+            String host = authority;
+            int port = 5432;
+            if (colonIdx != -1) {
+                host = authority.substring(0, colonIdx);
+                try {
+                    port = Integer.parseInt(authority.substring(colonIdx + 1));
+                } catch (Exception ignored) {
+                }
+            }
+
+            if (host != null && host.contains("render.com")) {
+                if (query == null || !query.contains("sslmode=")) {
+                    query = (query == null || query.isBlank()) ? "sslmode=require" : query + "&sslmode=require";
+                }
+            }
+
+            rawUrl = "jdbc:postgresql://" + host + ":" + port + path + (query != null && !query.isBlank() ? "?" + query : "");
+        } else if (!rawUrl.startsWith("jdbc:")) {
+            rawUrl = "jdbc:" + rawUrl;
+        }
+
+        log.info("Configured Database target URL: {} with user: {}", rawUrl, username);
+
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(jdbcUrl);
+        config.setJdbcUrl(rawUrl);
         config.setUsername(username);
         config.setPassword(password);
         config.setDriverClassName(driverClassName);
